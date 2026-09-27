@@ -1,0 +1,118 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <!-- Page heading -->
+    <div class="text-center mb-4">
+
+        <h2>AI Image Generator</h2>
+
+        <p class="text-muted">
+            Describe an image and let AI create it for you.
+        </p>
+
+    </div>
+
+
+    <!-- Image generation form -->
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <form
+                action="/image"
+                method="POST"
+            >
+
+                <label
+                    for="imagePrompt"
+                    class="form-label"
+                >
+                    Image description
+                </label>
+
+                <div class="input-group">
+
+                    <input
+                        class="form-control"
+                        type="text"
+                        id="imagePrompt"
+                        name="user_input"
+                        placeholder="For example: A futuristic city at sunset..."
+                        value="{{ prompt or '' }}"
+                        autocomplete="off"
+                        required
+                    >
+
+                    <button
+                        class="btn btn-primary"
+                        type="submit"
+                    >
+                        Generate
+                    </button>
+
+                </div>
+
+                <div class="form-text">
+                    Be descriptive for more detailed results.
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- Error -->
+    {% if error_message %}
+
+        <div
+            class="alert alert-danger"
+            role="alert"
+        >
+            {{ error_message }}
+        </div>
+
+    {% endif %}
+
+
+    <!-- Generated image -->
+    {% if image_url %}
+
+        <div class="card shadow-sm">
+
+            <div class="card-header">
+                <strong>Generated Image</strong>
+            </div>
+
+            <div class="card-body text-center">
+
+                <img
+                    src="{{ image_url }}"
+                    alt="AI-generated image based on the prompt: {{ prompt }}"
+                    class="img-fluid generated-image"
+                >
+
+                {% if prompt %}
+
+                    <p class="text-muted mt-3 mb-0">
+
+                        <strong>Prompt:</strong>
+                        {{ prompt }}
+
+                    </p>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

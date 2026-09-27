@@ -1,0 +1,301 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <div class="text-center mb-4">
+        <h2>AI Assistant</h2>
+        <p class="text-muted">
+            Ask questions about programming, technology, learning,
+            problem-solving, or anything else.
+        </p>
+    </div>
+
+    <!-- Chat -->
+    <div class="card shadow-sm">
+
+        <div class="card-header">
+            <strong>Conversation</strong>
+            <span
+                id="connectionStatus"
+                class="badge bg-secondary float-end"
+            >
+                Connecting...
+            </span>
+        </div>
+
+        <div
+            class="card-body chat-history"
+            id="chatHistory"
+        >
+            {% if not chat_responses %}
+                <div
+                    class="text-muted text-center"
+                    id="emptyChatMessage"
+                >
+                    Start a conversation with the AI assistant.
+                </div>
+            {% endif %}
+
+            {% for response in chat_responses %}
+                <div class="{{ 'chat-message user-input' if loop.index0 is even else 'chat-message ai-response' }}">
+                    {{ response }}
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+
+    <!-- Input -->
+    <div class="chat-input mt-3">
+
+        <div class="input-group">
+
+            <input
+                class="form-control"
+                type="text"
+                id="userInput"
+                placeholder="Type your message..."
+                autocomplete="off"
+            >
+
+            <button
+                class="btn btn-primary"
+                type="button"
+                id="sendButton"
+            >
+                Send
+            </button>
+
+        </div>
+
+        <div class="form-text">
+            Press Enter to send your message.
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    // -----------------------------------------
+    // WebSocket
+    // -----------------------------------------
+
+    const websocketProtocol =
+        window.location.protocol === "https:"
+            ? "wss:"
+            : "ws:";
+
+    const websocketString =
+        websocketProtocol +
+        "//" +
+        window.location.host +
+        "/ws";
+
+    const ws = new WebSocket(websocketString);
+
+
+    // -----------------------------------------
+    // Elements
+    // -----------------------------------------
+
+    const sendButton =
+        document.getElementById("sendButton");
+
+    const userInput =
+        document.getElementById("userInput");
+
+    const chatHistory =
+        document.getElementById("chatHistory");
+
+    const connectionStatus =
+        document.getElementById("connectionStatus");
+
+    let currentAiMessageDiv = null;
+
+
+    // -----------------------------------------
+    // Connection opened
+    // -----------------------------------------
+
+    ws.onopen = function() {
+
+        connectionStatus.textContent = "Connected";
+
+        connectionStatus.className =
+            "badge bg-success float-end";
+
+        userInput.focus();
+    };
+
+
+    // -----------------------------------------
+    // Receive AI response
+    // -----------------------------------------
+
+    ws.onmessage = function(event) {
+
+        const message = event.data;
+
+        if (currentAiMessageDiv === null) {
+
+            currentAiMessageDiv =
+                document.createElement("div");
+
+            currentAiMessageDiv.className =
+                "chat-message ai-response";
+
+            currentAiMessageDiv.textContent =
+                "AI Assistant: ";
+
+            chatHistory.appendChild(
+                currentAiMessageDiv
+            );
+        }
+
+        currentAiMessageDiv.textContent +=
+            message;
+
+        chatHistory.scrollTop =
+            chatHistory.scrollHeight;
+    };
+
+
+    // -----------------------------------------
+    // Send message
+    // -----------------------------------------
+
+    function sendMessage() {
+
+        const message =
+            userInput.value.trim();
+
+        if (message === "") {
+            return;
+        }
+
+        if (ws.readyState !== WebSocket.OPEN) {
+
+            console.error(
+                "WebSocket connection is not open."
+            );
+
+            return;
+        }
+
+
+        // Remove initial empty-chat message
+        const emptyChatMessage =
+            document.getElementById(
+                "emptyChatMessage"
+            );
+
+        if (emptyChatMessage) {
+            emptyChatMessage.remove();
+        }
+
+
+        // Display user's message
+        const userMessageDiv =
+            document.createElement("div");
+
+        userMessageDiv.className =
+            "chat-message user-input";
+
+        userMessageDiv.textContent =
+            "You: " + message;
+
+        chatHistory.appendChild(
+            userMessageDiv
+        );
+
+
+        // Next streamed response should
+        // create a new AI message.
+        currentAiMessageDiv = null;
+
+
+        // Send message
+        ws.send(message);
+
+
+        // Reset input
+        userInput.value = "";
+
+        userInput.focus();
+
+
+        // Scroll down
+        chatHistory.scrollTop =
+            chatHistory.scrollHeight;
+    }
+
+
+    // -----------------------------------------
+    // Send button
+    // -----------------------------------------
+
+    sendButton.addEventListener(
+        "click",
+        sendMessage
+    );
+
+
+    // -----------------------------------------
+    // Enter key
+    // -----------------------------------------
+
+    userInput.addEventListener(
+        "keydown",
+        function(event) {
+
+            if (event.key === "Enter") {
+
+                event.preventDefault();
+
+                sendMessage();
+            }
+        }
+    );
+
+
+    // -----------------------------------------
+    // WebSocket error
+    // -----------------------------------------
+
+    ws.onerror = function(error) {
+
+        console.error(
+            "WebSocket error:",
+            error
+        );
+
+        connectionStatus.textContent =
+            "Connection error";
+
+        connectionStatus.className =
+            "badge bg-danger float-end";
+    };
+
+
+    // -----------------------------------------
+    // WebSocket closed
+    // -----------------------------------------
+
+    ws.onclose = function() {
+
+        connectionStatus.textContent =
+            "Disconnected";
+
+        connectionStatus.className =
+            "badge bg-secondary float-end";
+    };
+
+</script>
+
+{% endblock %}
